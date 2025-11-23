@@ -1,0 +1,245 @@
+-- Sleek Redesigned UI + Cleaned Codebase
+-- Features: Jump Booster, Anti Knockback, Hitbox Expander, Ragdoll Bypass
+
+pcall(function()
+    game.CoreGui:FindFirstChild("UCT_UI"):Destroy()
+end)
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- UI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "UCT_UI"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 260, 0, 210)
+main.Position = UDim2.new(1, -280, 0, 120)
+main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+
+-- Rainbow Border
+local border = Instance.new("UIStroke", main)
+border.Thickness = 2
+
+task.spawn(function()
+    while gui.Parent do
+        for h = 0, 1, 0.002 do
+            border.Color = Color3.fromHSV(h,1,1)
+            task.wait()
+        end
+    end
+end)
+
+-- Header
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, -30, 0, 25)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Specx PVP | @vcxproj.sln"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Keybind to toggle menu (RightControl)
+UIS.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        if main.Visible then
+            openSound:Play()
+            main:TweenSize(UDim2.new(0,0,0,210), "Out", "Quad", 0.25, true)
+            task.wait(0.25)
+            main.Visible = false
+        else
+            openSound:Play()
+            main.Visible = true
+            main.Size = UDim2.new(0,0,0,210)
+            main:TweenSize(UDim2.new(0,260,0,210), "Out", "Quad", 0.25, true)
+        end
+    end
+end)
+(function()
+    main.Visible = not main.Visible
+end)
+
+-- Toggle Constructor
+local function CreateToggle(parent, text, yPos)
+    local holder = Instance.new("Frame", parent)
+    holder.Size = UDim2.new(1, -20, 0, 32)
+    holder.Position = UDim2.new(0, 10, 0, yPos)
+    holder.BackgroundTransparency = 1
+
+    local lbl = Instance.new("TextLabel", holder)
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, -60, 1, 0)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 15
+    lbl.TextColor3 = Color3.fromRGB(255,255,255)
+    lbl.Text = text
+
+    local toggleFrame = Instance.new("Frame", holder)
+toggleFrame.Size = UDim2.new(0, 40, 0, 18)
+toggleFrame.Position = UDim2.new(1, -50, 0.5, -9)
+toggleFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(1,0)
+
+    local knob = Instance.new("Frame", toggleFrame)
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(0, 2, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(255,60,60)
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+    local state = false
+
+    toggleFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            state = not state
+            if state then
+                knob:TweenPosition(UDim2.new(1, -16, 0.5, -7), "Out", "Sine", 0.12,true)
+                knob.BackgroundColor3 = Color3.fromRGB(0,255,120)
+            else
+                knob:TweenPosition(UDim2.new(0, 2, 0.5, -7), "Out", "Sine", 0.12,true)
+                knob.BackgroundColor3 = Color3.fromRGB(255,60,60)
+            end
+        end
+    end)
+
+    return function()
+        return state
+    end
+end
+
+-- Create toggles
+local jumpToggle = CreateToggle(main, "Jump Booster", 40)
+local antiKBtoggle = CreateToggle(main, "Anti Knockback", 80)
+local hitboxToggle = CreateToggle(main, "Hitbox Expander", 120)
+
+-- Jump Booster
+local gravityNormal = Workspace.Gravity
+local gravityBoost = 40
+local jumpBoost = 30
+local runSpeed = 27
+local HBconn, JRconn
+
+local function ApplyJumpBoost(enabled)
+    Workspace.Gravity = enabled and gravityBoost or gravityNormal
+
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.JumpPower = enabled and jumpBoost or 50
+        hum.UseJumpPower = true
+    end
+
+    if HBconn then HBconn:Disconnect() HBconn = nil end
+    if JRconn then JRconn:Disconnect() JRconn = nil end
+
+    if enabled then
+        HBconn = RunService.Heartbeat:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum and hum.MoveDirection.Magnitude > 0 then
+                    hrp.Velocity = Vector3.new(hum.MoveDirection.X * runSpeed, hrp.Velocity.Y, hum.MoveDirection.Z * runSpeed)
+                end
+            end
+        end)
+
+        JRconn = UIS.JumpRequest:Connect(function()
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp and hum then
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, hum.JumpPower, hrp.Velocity.Z)
+            end
+        end)
+    end
+end
+
+-- Anti Knockback
+local antiConnections = {}
+local antiActive = false
+
+local function AntiKB(state)
+    if state and not antiActive then
+        antiActive = true
+
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hum = char:WaitForChild("Humanoid")
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local animator = hum:WaitForChild("Animator")
+
+        local function CleanRagdoll()
+            for _, d in ipairs(char:GetDescendants()) do
+                if d:IsA("BallSocketConstraint") or d:IsA("HingeConstraint") or d:IsA("BodyGyro") or d:IsA("BodyVelocity") then
+                    d:Destroy()
+                end
+                if d:IsA("Motor6D") then d.Enabled = true end
+            end
+            hum.PlatformStand = false
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+            hrp.Velocity = Vector3.new()
+
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                local n = (track.Animation and track.Animation.Name:lower()) or ""
+                if n:find("rag") or n:find("fall") or n:find("hurt") then
+                    track:Stop()
+                end
+            end
+        end
+
+        table.insert(antiConnections, hum.StateChanged:Connect(CleanRagdoll))
+        table.insert(antiConnections, char.DescendantAdded:Connect(CleanRagdoll))
+        table.insert(antiConnections, RunService.Heartbeat:Connect(CleanRagdoll))
+
+    elseif not state and antiActive then
+        antiActive = false
+        for _, c in ipairs(antiConnections) do c:Disconnect() end
+        antiConnections = {}
+    end
+end
+
+-- Hitbox Expander
+local hitConn
+local function HitboxExpand(state)
+    if hitConn then hitConn:Disconnect() hitConn = nil end
+
+    if not state then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = plr.Character.HumanoidRootPart
+                hrp.Size = Vector3.new(2,2,1)
+                hrp.Transparency = 1
+            end
+        end
+        return
+    end
+
+    hitConn = RunService.RenderStepped:Connect(function()
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = plr.Character.HumanoidRootPart
+                hrp.Size = Vector3.new(12,12,12)
+                hrp.Transparency = 0.4
+                hrp.Color = Color3.fromRGB(255,255,255)
+                hrp.CanCollide = false
+            end
+        end
+    end)
+end
+
+-- Update loop
+RunService.Heartbeat:Connect(function()
+    ApplyJumpBoost(jumpToggle())
+    AntiKB(antiKBtoggle())
+    HitboxExpand(hitboxToggle())
+end)
